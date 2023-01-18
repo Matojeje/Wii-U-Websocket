@@ -1,0 +1,15 @@
+<html>
+  <head>
+    <script>
+      var ws = new WebSocket("ws://localhost:8080");
+      
+        setInterval(() => {
+            ws.send(JSON.stringify({ timestamp: Date.now() }));
+        }, 1000);
+
+    </script>
+  </head>
+  <body>
+    Sender
+  </body>
+</html>

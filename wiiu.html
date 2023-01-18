@@ -1,0 +1,116 @@
+<!doctype html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+        <meta name="viewport" content="width=1280, height=600 user-scalable=no" />
+        <title>Wii U server</title>
+        <style>
+            canvas {
+                position: absolute;
+                top: 0px;
+                left: 0px;
+                z-index: -1;
+            }
+        </style>
+        <script type="text/javascript">
+            var MySocket = new WebSocket("ws://192.168.0.117:8080");
+            var interval;
+            var previousTouched = 0;
+
+            MySocket.onopen = function()
+            {
+                document.getElementById("out").innerHTML = "Connected";
+                if(window.wiiu)
+                {
+                    interval = setInterval('update()', 1000 / 60);
+                }
+            };
+
+            MySocket.onmessage = function(evt)
+            {
+                // document.getElementById("out").innerHTML = evt.data;
+            };
+
+            MySocket.onclose = function()
+            {
+                document.getElementById("out").innerHTML = "Disconnected";
+                clearInterval(interval);
+            };
+
+            function update()
+            {
+                if(MySocket.bufferedAmount > 0) {
+                    return; // There is data in the queue
+                }
+
+                var gamepadState = window.wiiu.gamepad.update();
+                if(gamepadState.isEnabled && gamepadState.isDataValid)
+                {
+                    // console.log(gamepadState.tpTouch, previousTouched, gamepadState.tpTouch == previousTouched)
+                    // MySocket.send('{"wiiUGamePad":' + JSON.stringify(gamepadState) + '}');
+                    if (!!gamepadState.tpTouch || gamepadState.tpTouch != previousTouched)
+                    {
+                        MySocket.send('{"wiiUGamePad":' + JSON.stringify({
+                            x: gamepadState.tpX,
+                            y: gamepadState.tpY,
+                            touched: gamepadState.tpTouch,
+                            prevTouched: previousTouched,
+                            valid: gamepadState.tpValidity,
+                            drag: document.getElementById("drag").checked ? 1 : 0,
+                            smooth: document.getElementById("drag").checked ? 1 : 0
+                        }) + '}');
+                    }
+                    previousTouched = gamepadState.tpTouch;
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <p><div id="out"></div></p>
+        <label for="drag">
+            <input type="checkbox" name="drag" id="drag">
+            Drag mouse
+        </label><br>
+        <label for="smooth">
+            <input type="checkbox" name="smooth" id="smooth" checked>
+            Smooth mouse
+        </label>
+        <br>
+        <canvas id="c" width="854" height="480"></canvas>
+        <script>
+            var el = document.body;
+            var ctx = document.getElementById('c').getContext('2d');
+            var isDrawing;
+            
+            /* https://jsfiddle.net/tilwinjoy/5H5N2/ */
+            ctx.lineWidth = 4;
+            function onmousedown(e) {
+                console.log("down");
+                isDrawing = true;
+                ctx.beginPath();
+                ctx.moveTo(e.clientX, e.clientY);
+            };
+            function onmousemove(e) {
+              console.log("move");
+              if (isDrawing) {
+                  ctx.lineTo(e.clientX, e.clientY);
+                  ctx.stroke();
+              }
+            };
+            function onmouseup() {
+              console.log("up");
+              isDrawing = false;
+              ctx.closePath();
+            };
+
+            document.addEventListener("mousedown", onmousedown)
+            document.addEventListener("mousemove", onmousemove)
+            document.addEventListener("mouseup", onmouseup)
+
+            ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
+            setInterval(function a() {
+                ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            }, 500);
+        </script>
+    </body>
+</html>

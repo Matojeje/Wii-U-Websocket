@@ -1,0 +1,17 @@
+<html>
+  <head>
+    <script>
+      var ws = new WebSocket("ws://localhost:8080");
+      
+        ws.onmessage = async function (event) {
+            var data = JSON.parse(await event.data.text());
+            // console.log(data);
+            console.log([data.wiiUGamePad.tpX, data.wiiUGamePad.tpY])
+        };
+
+    </script>
+  </head>
+  <body>
+    Receiver
+  </body>
+</html>
